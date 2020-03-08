@@ -18,6 +18,11 @@ bench2_f misc_flag_merge_1;
 bench2_f misc_flag_merge_2;
 bench2_f misc_flag_merge_3;
 bench2_f misc_flag_merge_4;
+bench2_f misc_flag_merge_5;
+bench2_f misc_flag_merge_6;
+bench2_f misc_flag_merge_7;
+bench2_f misc_flag_merge_8;
+bench2_f misc_flag_merge_9;
 bench2_f david_schor1;
 bench2_f double_macro_fusion256;
 bench2_f double_macro_fusion4000;
@@ -78,6 +83,10 @@ bench2_f vzsse_diffreg;
 
 bench2_f movd_xmm;
 bench2_f movd_ymm;
+
+bench2_f rep_movsb;
+
+bench2_f movd_rep;
 
 bench2_f adc_chain32;
 bench2_f adc_chain64;
@@ -149,8 +158,18 @@ void register_misc(GroupList& list) {
                 null_provider, iters),
         default_maker::template make_bench<misc_flag_merge_4>(misc_group.get(), "flag-merge-4", "Flag merge 4", 128,
                 null_provider, iters),
+        default_maker::template make_bench<misc_flag_merge_5>(misc_group.get(), "flag-merge-5", "Flag merge 5", 128,
+                null_provider, iters),
+        default_maker::template make_bench<misc_flag_merge_6>(misc_group.get(), "flag-merge-6", "Flag merge cmovbe", 128,
+                null_provider, iters),
+        default_maker::template make_bench<misc_flag_merge_7>(misc_group.get(), "flag-merge-7", "Flag merge cmovc", 128,
+                null_provider, iters),
+        default_maker::template make_bench<misc_flag_merge_8>(misc_group.get(), "flag-merge-8", "Flag merge cmovbe (no merge)", 128,
+                null_provider, iters),
+        default_maker::template make_bench<misc_flag_merge_9>(misc_group.get(), "flag-merge-9", "Flag merge macro-fuse and", 128,
+                null_provider, iters),
         default_maker::template make_bench<david_schor1>(misc_group.get(), "schor1", "Suggested by David Schor", 1,
-                    null_provider, iters),
+                null_provider, iters),
         default_maker::template make_bench<double_macro_fusion256>(misc_group.get(), "double-macro-fuse", "Double not-taken macro fusion", 256,
                 null_provider, iters),
         default_maker::template make_bench<double_macro_fusion4000>(misc_group.get(), "double-macro-fuse4000", "Double macro fusion (MITE)", 4000,
@@ -290,6 +309,15 @@ void register_misc(GroupList& list) {
 
         maker.template make<movd_xmm>("movd-xmm", "roundtrip mov + vpor xmm", 100);
         maker.template make<movd_ymm>("movd-ymm", "roundtrip mov + vpor ymm", 100);
+    }
+
+    {
+        std::shared_ptr<BenchmarkGroup> group = std::make_shared<BenchmarkGroup>("studies/repm", "repm");
+        list.push_back(group);
+        auto maker = DeltaMaker<TIMER>(group.get(), 100);
+        maker = maker.useLoopDelta();
+
+        maker.template make<rep_movsb>("stosb", "stosb to 1024 byte region", 100);
     }
 
 #endif // #if !UARCH_BENCH_PORTABLE

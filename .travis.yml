@@ -1,5 +1,6 @@
+version: ~> 1.0
 language: cpp
-sudo: false
+os: linux
 dist: xenial
 branches:
   except:
@@ -8,23 +9,17 @@ branches:
 addons:
   apt:
     sources: &default_sources
-      - ubuntu-toolchain-r-test
     packages: &default_pacakges
 
 env:
   global:
 # fix clang complaining about unused command line args with ccache, see http://peter.eisentraut.org/blog/2014/12/01/ccache-and-clang-part-3/
     - CCACHE_CPP2=yes
-
+    - LIBPFC_TARGET=libpfc.so
 
 cache: ccache
 
-# the anchors element doesn't do anything but itself except define some anchors to be used later as aliases
-anchors:
-  - &unit_command ./unit-test
-  - &uarch_command ./uarch-bench --test-tag=~slow
-
-matrix:
+jobs:
   include:
       # clang-5.0 is the default installed on travis VMs
     - compiler: clang-default
@@ -39,108 +34,114 @@ matrix:
             - libc++1
     - compiler: gcc-default
       env: TRUE_CC=gcc TRUE_CXX=g++ PIE=
+    - compiler: nasm-test
+      env: TRUE_CC=gcc TRUE_CXX=g++ PIE=
+      script:
+        - ./scripts/travis-build.sh
+        - ./scripts/test-nasm.sh
     - compiler: gcc-4.9
       env: TRUE_CC=gcc-4.9 TRUE_CXX=g++-4.9 PIE=
       addons:
         apt:
           sources:
-          - *default_sources
+            - *default_sources
+            - ubuntu-toolchain-r-test
           packages:
-          - *default_pacakges
-          - gcc-4.9
-          - g++-4.9
+            - *default_pacakges
+            - gcc-4.9
+            - g++-4.9
     - compiler: gcc-6
       env: TRUE_CC=gcc-6 TRUE_CXX=g++-6
       addons:
         apt:
           sources:
-          - *default_sources
+            - *default_sources
+            - ubuntu-toolchain-r-test
           packages:
-          - *default_pacakges
-          - gcc-6
-          - g++-6
+            - *default_pacakges
+            - gcc-6
+            - g++-6
     - compiler: gcc-7
       env: TRUE_CC=gcc-7 TRUE_CXX=g++-7
       addons:
         apt:
           sources:
-          - *default_sources
+            - *default_sources
+            - ubuntu-toolchain-r-test
           packages:
-          - *default_pacakges
-          - gcc-7
-          - g++-7
+            - *default_pacakges
+            - gcc-7
+            - g++-7
     - compiler: gcc-8
       env: TRUE_CC=gcc-8 TRUE_CXX=g++-8
       addons:
         apt:
           sources:
-          - *default_sources
+            - *default_sources
+            - ubuntu-toolchain-r-test
           packages:
-          - *default_pacakges
-          - gcc-8
-          - g++-8
+            - *default_pacakges
+            - gcc-8
+            - g++-8
     - compiler: gcc-9
       env: TRUE_CC=gcc-9 TRUE_CXX=g++-9
       addons:
         apt:
           sources:
-          - *default_sources
+            - *default_sources
+            - ubuntu-toolchain-r-test
           packages:
-          - *default_pacakges
-          - gcc-9
-          - g++-9
+            - *default_pacakges
+            - gcc-9
+            - g++-9
     - compiler: clang-6.0
       env: TRUE_CC=clang-6.0 TRUE_CXX=clang++-6.0
       addons:
         apt:
           sources:
-          - *default_sources
-          - llvm-toolchain-xenial-6.0
+            - *default_sources
+            - llvm-toolchain-xenial-6.0
           packages:
-          - *default_pacakges
-          - clang-6.0
-          - clang++-6.0
+            - *default_pacakges
+            - clang-6.0
+            - clang++-6.0
     - compiler: clang-7
       env: TRUE_CC=clang-7 TRUE_CXX=clang++-7
       addons:
         apt:
           sources:
-          - *default_sources
-          - llvm-toolchain-xenial-7
+            - *default_sources
+            - llvm-toolchain-xenial-7
           packages:
-          - *default_pacakges
-          - clang-7
-          - clang++-7
+            - *default_pacakges
+            - clang-7
+            - clang++-7
     - compiler: clang-8
       env: TRUE_CC=clang-8 TRUE_CXX=clang++-8
       addons:
         apt:
           sources:
-          - *default_sources
-          - llvm-toolchain-xenial-8
+            - *default_sources
+            - llvm-toolchain-xenial-8
           packages:
-          - *default_pacakges
-          - clang-8
-          - clang++-8
+            - *default_pacakges
+            - clang-8
+            - clang++-8
     - compiler: gcc-6-kmod
       # this matrix entry builds the full kernel module
-      sudo: required
-      env: TRUE_CC=gcc-6 TRUE_CXX=g++-6
+      env: TRUE_CC=gcc-6 TRUE_CXX=g++-6 LIBPFC_TARGET="libpfc.so pfc.ko"
       addons:
         apt:
           sources:
-          - *default_sources
+            - *default_sources
+            - ubuntu-toolchain-r-test
           packages:
-          - *default_pacakges
-          - gcc-6
-          - g++-6
+            - *default_pacakges
+            - gcc-6
+            - g++-6
       script:
           - sudo apt-get install -y linux-headers-$(uname -r)
-          - set -e && echo "CC is ${CC}, CXX is ${CXX}" && ${CC} --version && ${CXX} --version && uname -r
-          - make
-          - lscpu
-          - *unit_command
-          - *uarch_command
+          - ./scripts/travis-run.sh
 
 before_install:
 # Travis will set CC and CXX after the env commands specified in the matrix are run, overwriting whatever
@@ -149,11 +150,4 @@ before_install:
   - CXX="ccache ${TRUE_CXX:-$CXX}"
 
 script:
-- set -e && echo "CC is ${CC}, CXX is ${CXX}" && ${CC} --version && ${CXX} --version
-- ccache -s
-- ccache -z
-- make LIBPFC_TARGET=libpfc.so
-- ccache -s
-- lscpu
-- *unit_command
-- *uarch_command
+  - ./scripts/travis-run.sh

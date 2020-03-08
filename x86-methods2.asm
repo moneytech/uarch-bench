@@ -1,4 +1,5 @@
-%include "x86_helpers.asm"
+
+%include "x86-helpers.asm"
 
 nasm_util_assert_boilerplate
 thunk_boilerplate
@@ -110,8 +111,6 @@ dec rdi
 jnz .top
 ret
 
-%if 1
-
 ;; the main loop interleaves in a fine-grained way an initial access
 ;; to a cache line, and then the second access to the cache line with
 ;; the former running UNROLLB lines ahead of the latter (once UNROLLB
@@ -172,6 +171,43 @@ dec rdi
 jnz .top
 ret
 
+define_bench movd_xmm
+vzeroall
+.top:
+    %rep 100
+    vpor   xmm0, xmm0, xmm0
+    movd   eax, xmm0
+    movd   xmm0, eax
+    %endrep
+    dec rdi
+    jnz .top
+    ret
 
-%endif
+define_bench movd_ymm
+    vzeroupper
+    vpor ymm0, ymm0, ymm0
+.top:
+    %rep 100
+    vpor   ymm0, ymm0, ymm0
+    movd   eax, xmm0
+    movd   xmm0, eax
+    %endrep
+    dec rdi
+    jnz .top
+    ret
 
+
+define_bench rep_movsb
+    sub rsp, 1024
+    mov r8, rdi
+.top:
+%rep 100
+    mov ecx, 1024
+    mov rdi, rsp
+    rep stosb
+%endrep
+    dec r8
+    jnz .top
+
+    add     rsp, 1024
+    ret

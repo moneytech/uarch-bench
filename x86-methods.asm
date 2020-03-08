@@ -1,4 +1,4 @@
-%include "x86_helpers.asm"
+%include "x86-helpers.asm"
 
 nasm_util_assert_boilerplate
 thunk_boilerplate
@@ -648,7 +648,7 @@ ret
 
 ; a series of AVX (REX-encoded) 128-bit stores to the same location, passed as the second parameter
 define_bench store128_any
-vpxor xmm0, xmm0
+vpxor xmm0, xmm0, xmm0
 .top:
 times 128 vmovdqu [rsi], xmm0
 dec rdi
@@ -657,7 +657,7 @@ ret
 
 ; a series of AVX (REX-encoded) 256-bit stores to the same location, passed as the second parameter
 define_bench store256_any
-vpxor xmm0, xmm0
+vpxor xmm0, xmm0, xmm0
 .top:
 times 128 vmovdqu [rsi], ymm0
 dec rdi
@@ -666,7 +666,7 @@ ret
 
 ; a series of AVX512 512-bit stores to the same location, passed as the second parameter
 define_bench store512_any
-vpxorq zmm16, zmm16
+vpxorq zmm16, zmm16, zmm16
 .top:
 times 128 vmovdqu64 [rsi], zmm16
 dec rdi
@@ -930,6 +930,79 @@ ret
 .never:
 ud2
 
+define_bench misc_flag_merge_5
+xor eax, eax
+.top:
+%rep 128
+add rcx, 5
+inc rax
+nop
+jna  .never
+%endrep
+dec rdi
+jnz .top
+ret
+.never:
+ud2
+
+define_bench misc_flag_merge_6
+xor eax, eax
+.top:
+%rep 128
+add rcx, 5
+inc rax
+cmovbe rdx, r8
+%endrep
+dec rdi
+jnz .top
+ret
+.never:
+ud2
+
+define_bench misc_flag_merge_7
+xor eax, eax
+.top:
+%rep 128
+add rcx, 5
+inc rax
+cmovc rdx, r8
+%endrep
+dec rdi
+jnz .top
+ret
+.never:
+ud2
+
+define_bench misc_flag_merge_8
+xor eax, eax
+.top:
+%rep 128
+inc rax
+add rcx, 5
+cmovbe rdx, r8
+%endrep
+dec rdi
+jnz .top
+ret
+.never:
+ud2
+
+define_bench misc_flag_merge_9
+xor eax, eax
+mov ecx, 1
+mov edx, 1
+.top:
+%rep 128
+and rcx, rdx
+nop
+jbe .never
+%endrep
+dec rdi
+jnz .top
+ret
+.never:
+ud2
+
 ; https://twitter.com/david_schor/status/1106687885825241089
 define_bench david_schor1
     push rbx
@@ -1121,31 +1194,6 @@ times 100 paddq xmm0, xmm1
 dec rdi
 jnz .top
 ret
-
-define_bench movd_xmm
-vzeroall
-.top:
-%rep 100
-vpor   xmm0, xmm0, xmm0
-movd   eax, xmm0
-movd   xmm0, eax
-%endrep
-dec rdi
-jnz .top
-ret
-
-define_bench movd_ymm
-vzeroall
-.top:
-%rep 100
-vpor   ymm0, ymm0, ymm0
-movd   eax, xmm0
-movd   xmm0, eax
-%endrep
-dec rdi
-jnz .top
-ret
-
 
 %define fused_unroll_order 4
 %define fused_unroll (1 << fused_unroll_order)
